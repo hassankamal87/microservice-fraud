@@ -21,6 +21,4 @@ public class Report {
     private int id;
 
     private String description;
-
-    private String status;
 }

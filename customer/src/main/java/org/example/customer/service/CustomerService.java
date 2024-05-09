@@ -3,6 +3,7 @@ package org.example.customer.service;
 import org.example.customer.model.Customer;
 import org.example.customer.model.CustomerRequest;
 import org.example.customer.model.FraudCheckResponse;
+import org.example.customer.model.ReportRequest;
 import org.example.customer.repo.CustomerRepo;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -18,7 +19,6 @@ public record CustomerService(CustomerRepo customerRepo, RestTemplate restTempla
 
         customerRepo.saveAndFlush(customer);
 
-        // todo: check if fraud customer
         FraudCheckResponse fraudCheckResponse = restTemplate.getForObject("http://localhost:8081/api/v1/fraud-check/{customerId}",
                 FraudCheckResponse.class,
                 customer.getId()
@@ -29,7 +29,11 @@ public record CustomerService(CustomerRepo customerRepo, RestTemplate restTempla
             throw new IllegalStateException("fraudster");
         }
 
-        //todo: send notification
+        ReportRequest reportRequest = new ReportRequest("A Fraud with id: " + customer.getId() + " tries to log in the system");
 
+        restTemplate.postForEntity("http://localhost:8081/api/v1/reports/",
+                reportRequest,
+                Void.class
+        );
     }
 }
