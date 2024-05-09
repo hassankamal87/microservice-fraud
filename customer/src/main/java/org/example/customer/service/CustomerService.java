@@ -15,13 +15,10 @@ public record CustomerService(CustomerRepo customerRepo, RestTemplate restTempla
                 .lastName(customerRequest.lastName())
                 .email(customerRequest.email()).build();
 
-        // todo: check if email valid
-        // todo: check if email not token
 
-        //todo: save customer to db
         customerRepo.saveAndFlush(customer);
 
-        // todo: check if fraudster
+        // todo: check if fraud customer
         FraudCheckResponse fraudCheckResponse = restTemplate.getForObject("http://localhost:8081/api/v1/fraud-check/{customerId}",
                 FraudCheckResponse.class,
                 customer.getId()
