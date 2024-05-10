@@ -1,5 +1,7 @@
 package org.example.customer.service;
 
+import com.netflix.appinfo.InstanceInfo;
+import com.netflix.discovery.EurekaClient;
 import org.example.customer.model.Customer;
 import org.example.customer.model.CustomerRequest;
 import org.example.customer.model.FraudCheckResponse;
@@ -9,7 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 @Service
-public record CustomerService(CustomerRepo customerRepo, RestTemplate restTemplate) {
+public record CustomerService(CustomerRepo customerRepo, RestTemplate restTemplate, EurekaClient eurekaClient) {
+
+
     public void registerCustomer(CustomerRequest customerRequest) {
         Customer customer = Customer.builder()
                 .firstName(customerRequest.firstName())
@@ -19,7 +23,7 @@ public record CustomerService(CustomerRepo customerRepo, RestTemplate restTempla
 
         customerRepo.saveAndFlush(customer);
 
-        FraudCheckResponse fraudCheckResponse = restTemplate.getForObject("http://localhost:8081/api/v1/fraud-check/{customerId}",
+        FraudCheckResponse fraudCheckResponse = restTemplate.getForObject( createBaseUrlForService("fraud")+ "/api/v1/fraud-check/{customerId}",
                 FraudCheckResponse.class,
                 customer.getId()
         );
@@ -31,9 +35,21 @@ public record CustomerService(CustomerRepo customerRepo, RestTemplate restTempla
 
         ReportRequest reportRequest = new ReportRequest("A Fraud with id: " + customer.getId() + " tries to log in the system");
 
-        restTemplate.postForEntity("http://localhost:8081/api/v1/reports/",
+        restTemplate.postForEntity(createBaseUrlForService("reports") + "/api/v1/reports/",
                 reportRequest,
                 Void.class
         );
+
+    }
+    public String createBaseUrlForService(String serviceName) {
+        InstanceInfo serviceInstance = eurekaClient
+                .getApplication(serviceName)
+                .getInstances()
+                .get(0);
+
+        String hostName = serviceInstance.getHostName();
+        int port = serviceInstance.getPort();
+
+        return "http://" + hostName + ":" + port;
     }
 }
